@@ -35,3 +35,30 @@ jobs:
       run: |
         file _binary/build/tl
         _binary/build/tl --version
+
+    - name: Package
+      env:
+        PLATFORM: ${{ matrix.platform }}
+      run: |
+        folder="tl-${PLATFORM}"
+        cat <<EOF > _binary/tlconfig.lua
+        return {
+           source_dir = "src",
+           build_dir = "build",
+        }
+        EOF
+        rm -rf "$folder"
+        mkdir "$folder"
+        cp README.md CHANGELOG.md LICENSE _binary/tlconfig.lua "$folder"
+        cp -a docs/ "$folder"
+        mkdir "$folder"/build
+        cp tl.lua "$folder"/build
+        cp _binary/build/tl "$folder"
+        tar czvpf "${folder}.tar.gz" "$folder"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tl-${{ matrix.platform }}
+        path: tl-${{ matrix.platform }}.tar.gz
+
