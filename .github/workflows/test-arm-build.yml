@@ -1,0 +1,37 @@
+name: test-arm-build
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04-arm
+            platform: linux-aarch64
+          - os: macos-14
+            platform: macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: luarocks/gh-actions-lua@master
+      with:
+        luaVersion: "5.4"
+
+    - name: Build binary
+      env:
+        PLATFORM: ${{ matrix.platform }}
+      run: |
+        case "$PLATFORM" in
+          macos-*) extras/binary.sh --macos ;;
+          *)       extras/binary.sh ;;
+        esac
+
+    - name: Smoke test
+      run: |
+        file _binary/build/tl
+        _binary/build/tl --version
