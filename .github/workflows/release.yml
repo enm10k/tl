@@ -33,6 +33,66 @@ jobs:
         git config --global user.email "$GITHUB_USER@users.noreply.github.com"
         extras/release.sh $VERSION
 
+  binaries:
+    needs: [release]
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04-arm
+            platform: linux-aarch64
+          - os: macos-14
+            platform: macos-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: v${{ inputs.version }}
+
+    - uses: luarocks/gh-actions-lua@master
+      with:
+        luaVersion: "5.4"
+
+    - name: Build binary
+      env:
+        PLATFORM: ${{ matrix.platform }}
+      run: |
+        case "$PLATFORM" in
+          macos-*) extras/binary.sh --macos ;;
+          *)       extras/binary.sh ;;
+        esac
+
+    - name: Package
+      env:
+        VERSION: ${{ inputs.version }}
+        PLATFORM: ${{ matrix.platform }}
+      run: |
+        folder="tl-${VERSION}-${PLATFORM}"
+        cat <<EOF > _binary/tlconfig.lua
+        return {
+           source_dir = "src",
+           build_dir = "build",
+        }
+        EOF
+        rm -rf "$folder"
+        mkdir "$folder"
+        cp README.md CHANGELOG.md LICENSE _binary/tlconfig.lua "$folder"
+        cp -a docs/ "$folder"
+        mkdir "$folder"/build
+        cp tl.lua "$folder"/build
+        cp _binary/build/tl "$folder"
+        tar czvpf "${folder}.tar.gz" "$folder"
+
+    - name: Upload to release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ inputs.version }}
+        PLATFORM: ${{ matrix.platform }}
+      run: gh release upload "v${VERSION}" "tl-${VERSION}-${PLATFORM}.tar.gz" --clobber --repo "$GITHUB_REPOSITORY"
+
   docs-latest:
     needs: [release]
     uses: ./.github/workflows/composite-docs.yml
