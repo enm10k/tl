@@ -9,6 +9,9 @@ set -e
 # To build a Windows executable, install the w64-mingw32
 # cross compiler toolchain and run `extras/binary.sh --windows`.
 
+# To build a macOS executable, run `extras/binary.sh --macos`
+# (this is detected automatically when running on macOS).
+
 lua_version="5.4.8"
 argparse_version="0.7.1"
 luafilesystem_version="1.8.0"
@@ -29,11 +32,25 @@ root="$(pwd)/_binary"
 depsdir="${root}/deps"
 
 # Let's parse any command line arguments
+#
+# Default to a macOS build when running on macOS, so that a bare
+# `extras/binary.sh` invocation just works on a Mac.
+
+if [ "$(uname -s)" = "Darwin" ]
+then
+   LUA_DEFINES="-DLUA_USE_MACOSX"
+   MYCFLAGS=("-Os" "-lm")
+fi
 
 what_to_do="build"
 while [ "$1" ]
 do
    case "$1" in
+   --macos)
+      LUA_DEFINES="-DLUA_USE_MACOSX"
+      MYCFLAGS=("-Os" "-lm")
+      executable="tl"
+      ;;
    --windows)
       export CC=x86_64-w64-mingw32-gcc
       export NM=x86_64-w64-mingw32-nm
@@ -72,9 +89,10 @@ done
 if [ "$what_to_do" = "help" ]
 then
    echo ""
-   echo "Usage: $0 [--windows] [--sourcedir=<DIR>] [--targetdir=<DIR>]"
+   echo "Usage: $0 [--windows] [--macos] [--sourcedir=<DIR>] [--targetdir=<DIR>]"
    echo ""
    echo "   --windows          Cross-build for Windows (requires w64-mingw32 toolchain)"
+   echo "   --macos            Build for macOS (auto-detected when running on macOS)"
    echo "   --sourcedir=<DIR>  Location of Teal sources root"
    echo "                      * root dir..........: $sourcedir"
    echo "   --targetdir=<DIR>  Target location root"
@@ -184,7 +202,7 @@ build_dep "${depsdir}/lua-${lua_version}" "src/liblua.a" lua_builder
 
 function lfs_builder() {
    "${CC}" -c -o "lfs.o" -I "../lua-${lua_version}/src" "src/lfs.c"
-   "${AR}" rcu -o "lfs.a" "lfs.o"
+   "${AR}" rcu "lfs.a" "lfs.o"
 }
 
 build_dep "${depsdir}/luafilesystem-${luafilesystem_version}" "lfs.a" lfs_builder

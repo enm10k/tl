@@ -103,27 +103,27 @@ git push origin v"$version" || {
 
 echo "*** tl $version is now tagged on the repository! ***"
 
-[ "$(find . -maxdepth 1 -name "tl-dev-*.rockspec" | wc -l)" = 1 ] || {
-   echo "Multiple dev rockspecs fonud."
-   exit 1
-}
+if [ "$LUAROCKS_API_KEY" ]
+then
+   [ "$(find . -maxdepth 1 -name "tl-dev-*.rockspec" | wc -l)" = 1 ] || {
+      echo "Multiple dev rockspecs fonud."
+      exit 1
+   }
 
-luarocks new_version tl-dev-*.rockspec "$version" --tag="v$version" || {
-   echo "Failed to create the new rockspec."
-   exit 1
-}
+   luarocks new_version tl-dev-*.rockspec "$version" --tag="v$version" || {
+      echo "Failed to create the new rockspec."
+      exit 1
+   }
 
-api_key=()
-[ "$LUAROCKS_API_KEY" ] && {
-   api_key=("--temp-key" "$LUAROCKS_API_KEY")
-}
+   luarocks upload --temp-key "$LUAROCKS_API_KEY" tl-"$version"-1.rockspec || {
+      echo "Failed to upload the new rockspec."
+      exit 1
+   }
 
-luarocks upload "${api_key[@]}" tl-"$version"-1.rockspec || {
-   echo "Failed to upload the new rockspec."
-   exit 1
-}
-
-echo "*** tl $version is now released on LuaRocks! ***"
+   echo "*** tl $version is now released on LuaRocks! ***"
+else
+   echo "*** LUAROCKS_API_KEY not set; skipping LuaRocks upload. ***"
+fi
 
 cat <<EOF > _binary/release.txt
 Teal $version
