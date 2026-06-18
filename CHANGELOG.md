@@ -1,3 +1,11 @@
+# 0.25.0-test1
+
+2026-06-18
+
+Test release on a fork to validate the automated build and publishing of
+prebuilt binaries, including the new aarch64 Linux and macOS arm64
+artifacts. No functional changes to the compiler.
+
 # 0.24.8
 
 2025-10-13
