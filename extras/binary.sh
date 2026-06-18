@@ -202,7 +202,7 @@ build_dep "${depsdir}/lua-${lua_version}" "src/liblua.a" lua_builder
 
 function lfs_builder() {
    "${CC}" -c -o "lfs.o" -I "../lua-${lua_version}/src" "src/lfs.c"
-   "${AR}" rcu -o "lfs.a" "lfs.o"
+   "${AR}" rcu "lfs.a" "lfs.o"
 }
 
 build_dep "${depsdir}/luafilesystem-${luafilesystem_version}" "lfs.a" lfs_builder
